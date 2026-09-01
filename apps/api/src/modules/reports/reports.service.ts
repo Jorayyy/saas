@@ -17,7 +17,7 @@ export class ReportsService {
       ? { createdAt: { gte: new Date(from), lte: new Date(to) } }
       : {};
 
-    const where = {
+    const where: any = {
       tenantId,
       status: 'COMPLETED',
       ...(branchId && { branchId }),
@@ -28,7 +28,7 @@ export class ReportsService {
       where,
       select: {
         total: true,
-        discount: true,
+        discountAmount: true,
         createdAt: true,
       },
       orderBy: { createdAt: 'asc' },
@@ -56,13 +56,13 @@ export class ReportsService {
       }
 
       grouped[key].total += Number(sale.total);
-      grouped[key].discount += Number(sale.discount);
+      grouped[key].discount += Number(sale.discountAmount);
       grouped[key].count += 1;
     });
 
     return {
       totalRevenue: sales.reduce((sum, s) => sum + Number(s.total), 0),
-      totalDiscounts: sales.reduce((sum, s) => sum + Number(s.discount), 0),
+      totalDiscounts: sales.reduce((sum, s) => sum + Number(s.discountAmount), 0),
       transactionCount: sales.length,
       byPeriod: grouped,
     };
@@ -79,7 +79,7 @@ export class ReportsService {
       ? { createdAt: { gte: new Date(from), lte: new Date(to) } }
       : {};
 
-    const where = {
+    const where: any = {
       tenantId,
       sale: {
         status: 'COMPLETED',
@@ -106,8 +106,8 @@ export class ReportsService {
 
     return productSales.map(ps => ({
       product: products.find(p => p.id === ps.productId),
-      quantitySold: ps._sum.quantity,
-      revenue: Number(ps._sum.total),
+      quantitySold: ps._sum?.quantity,
+      revenue: Number(ps._sum?.total),
       transactionCount: ps._count,
     }));
   }
@@ -123,7 +123,7 @@ export class ReportsService {
       ? { createdAt: { gte: new Date(from), lte: new Date(to) } }
       : {};
 
-    const salesWhere = {
+    const salesWhere: any = {
       tenantId,
       status: 'COMPLETED',
       ...(branchId && { branchId }),
@@ -133,7 +133,7 @@ export class ReportsService {
     const [sales, saleItems] = await Promise.all([
       this.prisma.sale.aggregate({
         where: salesWhere,
-        _sum: { total: true, discount: true },
+        _sum: { total: true, discountAmount: true },
       }),
       this.prisma.saleItem.findMany({
         where: {
@@ -146,7 +146,7 @@ export class ReportsService {
       }),
     ]);
 
-    let totalRevenue = Number(sales._sum.total || 0);
+    let totalRevenue = Number(sales._sum?.total || 0);
     let totalCost = 0;
 
     saleItems.forEach(item => {

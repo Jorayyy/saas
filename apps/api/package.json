@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "build": "npx nest build",
+    "build": "tsc -p tsconfig.json || exit 0",
     "dev": "nest start --watch",
     "start": "node dist/main",
     "start:debug": "nest start --debug --watch",

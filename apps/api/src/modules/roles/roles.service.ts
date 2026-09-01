@@ -104,7 +104,7 @@ export class RolesService {
         action: 'CREATE',
         resourceType: 'role',
         resourceId: role.id,
-        newValues: dto,
+        newValues: dto as any,
       },
     });
 
@@ -168,7 +168,7 @@ export class RolesService {
         action: 'UPDATE',
         resourceType: 'role',
         resourceId: id,
-        newValues: dto,
+        newValues: dto as any,
       },
     });
 

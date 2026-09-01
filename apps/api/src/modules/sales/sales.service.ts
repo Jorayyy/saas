@@ -50,7 +50,7 @@ export class SalesService {
       ...(status && { status }),
       ...(customerId && { customerId }),
       ...(from && to && { createdAt: { gte: new Date(from), lte: new Date(to) } }),
-      ...(paymentMethod && { payments: { some: { method: paymentMethod } } }),
+      ...(paymentMethod && { payments: { some: { paymentMethod: paymentMethod as any } } }),
     };
 
     const [sales, total] = await Promise.all([
@@ -61,7 +61,7 @@ export class SalesService {
           user: { select: { id: true, name: true } },
           branch: { select: { id: true, name: true } },
           items: { select: { id: true } },
-          payments: { select: { id: true, method: true, amount: true } },
+          payments: { select: { id: true, paymentMethod: true, amount: true } },
         },
         skip: (page - 1) * limit,
         take: limit,
@@ -88,9 +88,7 @@ export class SalesService {
             product: { select: { id: true, name: true, sku: true } },
           },
         },
-        payments: {
-          include: { user: { select: { id: true, name: true } } },
-        },
+        payments: true,
         refunds: {
           include: {
             items: true,
@@ -137,7 +135,9 @@ export class SalesService {
         productId: item.productId,
         quantity: item.quantity,
         unitPrice: item.unitPrice,
-        discount: itemDiscount,
+        discountAmount: itemDiscount,
+        taxRate: 0,
+        taxAmount: 0,
         total: itemTotal,
       };
     });
@@ -165,10 +165,10 @@ export class SalesService {
           saleNumber,
           status: 'COMPLETED',
           subtotal,
-          discount: totalDiscount,
+          discountAmount: totalDiscount,
           total,
-          paid: totalPaid,
-          change: totalPaid - total,
+          amountPaid: totalPaid,
+          changeAmount: totalPaid - total,
           notes: dto.notes,
         },
       });
@@ -208,14 +208,13 @@ export class SalesService {
 
       // Create payments
       for (const payment of dto.payments) {
-        await tx.payment.create({
+        await tx.salePayment.create({
           data: {
             tenantId,
             saleId: newSale.id,
-            method: payment.method as any,
+            paymentMethod: payment.method as any,
             amount: payment.amount,
             reference: payment.reference,
-            userId,
           },
         });
       }
@@ -287,19 +286,26 @@ export class SalesService {
       for (const item of dto.items) {
         const saleItem = sale.items.find(i => i.id === item.saleItemId);
         if (saleItem) {
-          refundTotal += item.quantity * saleItem.unitPrice;
+          refundTotal += item.quantity * Number(saleItem.unitPrice);
         }
       }
 
+      // Generate refund number
+      const refundCount = await tx.saleRefund.count({ where: { tenantId } });
+      const refundNumber = `REF-${String(refundCount + 1).padStart(8, '0')}`;
+
       // Create refund
-      const newRefund = await tx.refund.create({
+      const newRefund = await tx.saleRefund.create({
         data: {
           tenantId,
           saleId,
           userId,
+          refundNumber,
           reason: dto.reason,
-          notes: dto.notes,
+          subtotal: refundTotal,
+          taxAmount: 0,
           total: refundTotal,
+          refundMethod: 'CASH',
           status: 'COMPLETED',
         },
       });
@@ -308,16 +314,14 @@ export class SalesService {
       for (const item of dto.items) {
         const saleItem = sale.items.find(i => i.id === item.saleItemId);
         if (saleItem) {
-          await tx.refundItem.create({
+          await tx.saleRefundItem.create({
             data: {
               refundId: newRefund.id,
-              tenantId,
               saleItemId: item.saleItemId,
               productId: saleItem.productId,
               quantity: item.quantity,
-              unitPrice: saleItem.unitPrice,
-              total: item.quantity * saleItem.unitPrice,
-              reason: item.reason,
+              unitPrice: Number(saleItem.unitPrice),
+              total: item.quantity * Number(saleItem.unitPrice),
             },
           });
 
@@ -336,7 +340,7 @@ export class SalesService {
               quantityBefore: 0,
               quantityChange: item.quantity,
               quantityAfter: 0,
-              transactionType: 'REFUND',
+              transactionType: 'RETURN',
               userId,
               referenceType: 'Refund',
               referenceId: newRefund.id,
@@ -389,17 +393,17 @@ export class SalesService {
     const [summary, payments, topProducts] = await Promise.all([
       this.prisma.sale.aggregate({
         where,
-        _sum: { total: true, discount: true },
+        _sum: { total: true, discountAmount: true },
         _count: true,
       }),
-      this.prisma.payment.groupBy({
-        by: ['method'],
-        where: { tenantId, branchId, sale: where },
+      this.prisma.salePayment.groupBy({
+        by: ['paymentMethod'],
+        where: { tenantId, sale: where },
         _sum: { amount: true },
       }),
       this.prisma.saleItem.groupBy({
         by: ['productId'],
-        where: { tenantId, branchId, sale: where },
+        where: { tenantId, sale: where },
         _sum: { quantity: true, total: true },
         orderBy: { _sum: { total: 'desc' } },
         take: 5,
@@ -409,10 +413,10 @@ export class SalesService {
     return {
       date: targetDate,
       totalSales: Number(summary._sum.total || 0),
-      totalDiscounts: Number(summary._sum.discount || 0),
+      totalDiscounts: Number(summary._sum.discountAmount || 0),
       transactionCount: summary._count,
       paymentsByMethod: payments.map(p => ({
-        method: p.method,
+        method: p.paymentMethod,
         total: Number(p._sum.amount),
       })),
       topProducts,

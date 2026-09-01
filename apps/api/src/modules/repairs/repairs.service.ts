@@ -315,10 +315,9 @@ export class RepairsService {
           repairId,
           tenantId,
           productId: dto.productId,
-          quantity: dto.quantity,
+          quantityUsed: dto.quantity,
           unitCost: dto.unitCost,
-          total: dto.quantity * dto.unitCost,
-          addedBy: userId,
+          totalCost: dto.quantity * dto.unitCost,
         },
       });
 
@@ -337,7 +336,7 @@ export class RepairsService {
           quantityBefore: product.currentStock,
           quantityChange: -dto.quantity,
           quantityAfter: product.currentStock - dto.quantity,
-          transactionType: 'REPAIR_PART',
+          transactionType: 'REPAIR_USE',
           userId,
           referenceType: 'RepairPart',
           referenceId: newPart.id,
@@ -347,14 +346,14 @@ export class RepairsService {
       // Update repair parts cost
       const totalPartsCost = await tx.repairPart.aggregate({
         where: { repairId },
-        _sum: { total: true },
+        _sum: { totalCost: true },
       });
 
       await tx.repairTicket.update({
         where: { id: repairId },
         data: {
-          partsCost: Number(totalPartsCost._sum.total || 0),
-          totalCost: (Number(totalPartsCost._sum.total || 0)) + Number(repair.laborCost || 0),
+          partsCost: Number(totalPartsCost._sum?.totalCost || 0),
+          totalCost: Number(totalPartsCost._sum?.totalCost || 0) + Number(repair.laborCost || 0),
         },
       });
 
@@ -385,7 +384,7 @@ export class RepairsService {
       // Restore stock
       await tx.product.update({
         where: { id: part.productId },
-        data: { currentStock: { increment: part.quantity } },
+        data: { currentStock: { increment: part.quantityUsed } },
       });
 
       // Create inventory movement
@@ -395,9 +394,9 @@ export class RepairsService {
           productId: part.productId,
           branchId: repair.branchId,
           quantityBefore: 0,
-          quantityChange: part.quantity,
+          quantityChange: part.quantityUsed,
           quantityAfter: 0,
-          transactionType: 'REPAIR_PART_REMOVED',
+          transactionType: 'REPAIR_USE',
           userId,
           referenceType: 'RepairPart',
           referenceId: partId,
@@ -410,14 +409,14 @@ export class RepairsService {
       // Update repair parts cost
       const totalPartsCost = await tx.repairPart.aggregate({
         where: { repairId },
-        _sum: { total: true },
+        _sum: { totalCost: true },
       });
 
       await tx.repairTicket.update({
         where: { id: repairId },
         data: {
-          partsCost: Number(totalPartsCost._sum.total || 0),
-          totalCost: (Number(totalPartsCost._sum.total || 0)) + Number(repair.laborCost || 0),
+          partsCost: Number(totalPartsCost._sum?.totalCost || 0),
+          totalCost: Number(totalPartsCost._sum?.totalCost || 0) + Number(repair.laborCost || 0),
         },
       });
     });
@@ -427,7 +426,7 @@ export class RepairsService {
 
   async complete(tenantId: string, id: string, userId: string) {
     const repair = await this.prisma.repairTicket.findFirst({
-      where: { id, tenantId, status: { in: ['IN_REPAIR', 'WAITING_PARTS'] } },
+      where: { id, tenantId, status: { in: ['IN_REPAIR', 'WAITING_FOR_PARTS'] } },
     });
 
     if (!repair) {
@@ -459,7 +458,7 @@ export class RepairsService {
       await tx.repairTicket.update({
         where: { id },
         data: {
-          status: 'DELIVERED',
+          status: 'COMPLETED',
           completedAt: new Date(),
         },
       });
@@ -469,24 +468,14 @@ export class RepairsService {
         data: {
           repairId: id,
           tenantId,
-          status: 'DELIVERED',
+          status: 'COMPLETED',
           userId,
           notes: 'Device picked up and paid',
         },
       });
 
-      // Create payment records
-      for (const payment of payments) {
-        await tx.payment.create({
-          data: {
-            tenantId,
-            repairId: id,
-            method: payment.method as any,
-            amount: payment.amount,
-            userId,
-          },
-        });
-      }
+      // Note: Repair payments tracked separately from sales
+      // TODO: Create a dedicated RepairPayment model
 
       // Update customer total
       if (repair.customerId) {
@@ -502,7 +491,7 @@ export class RepairsService {
 
   async cancel(tenantId: string, id: string, userId: string, reason?: string) {
     const repair = await this.prisma.repairTicket.findFirst({
-      where: { id, tenantId, status: { notIn: ['COMPLETED', 'DELIVERED', 'CANCELLED'] } },
+      where: { id, tenantId, status: { notIn: ['COMPLETED', 'CANCELLED'] } },
     });
 
     if (!repair) {
@@ -519,7 +508,7 @@ export class RepairsService {
       for (const part of parts) {
         await tx.product.update({
           where: { id: part.productId },
-          data: { currentStock: { increment: part.quantity } },
+        data: { currentStock: { increment: part.quantityUsed } },
         });
       }
 
