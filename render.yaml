@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: techshop-api
+    runtime: node
+    region: oregon
+    buildCommand: cd apps/api && npm install && npx prisma generate && npm run build
+    startCommand: cd apps/api && npx prisma db push && node dist/main.js
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        value: techshop-secret-key
+      - key: PORT
+        value: 3001
+      - key: NODE_ENV
+        value: production
