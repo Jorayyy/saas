@@ -2,41 +2,29 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files
 COPY package*.json ./
 COPY apps/api/package*.json ./apps/api/
-COPY packages/*/package*.json ./packages/
+RUN npm install --workspace=apps/api
 
-# Install dependencies
-RUN npm ci
+COPY apps/api/ ./apps/api/
+COPY tsconfig.base.json ./
 
-# Copy source
-COPY . .
+WORKDIR /app/apps/api
 
-# Generate Prisma client
-RUN cd apps/api && npx prisma generate
+RUN npx prisma generate
+RUN npm run build
 
-# Build
-RUN npx turbo build --filter=api
-
-# Production stage
-FROM node:20-alpine AS runner
+FROM node:20-alpine
 
 WORKDIR /app
-ENV NODE_ENV=production
 
-# Copy built files
 COPY --from=builder /app/apps/api/dist ./dist
 COPY --from=builder /app/apps/api/node_modules ./node_modules
 COPY --from=builder /app/apps/api/package.json ./
 COPY --from=builder /app/apps/api/prisma ./prisma
 
-# Expose port
+ENV NODE_ENV=production
+
 EXPOSE 3001
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
-  CMD curl -f http://localhost:3001/health || exit 1
-
-# Start
-CMD ["node", "dist/main.js"]
+CMD ["sh", "-c", "npx prisma db push && node dist/main.js"]
