@@ -3,7 +3,7 @@ services:
     name: techshop-api
     runtime: node
     region: oregon
-    buildCommand: cd apps/api && npm install && npx prisma generate && npm run build
+    buildCommand: cd apps/api && npm install --include=dev && npx prisma generate && npx nest build
     startCommand: cd apps/api && npx prisma db push && node dist/main.js
     envVars:
       - key: DATABASE_URL
