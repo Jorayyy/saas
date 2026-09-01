@@ -56,17 +56,6 @@ export class UsersService {
             include: { role: { select: { id: true, name: true, displayName: true } } },
           },
         },
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          phone: true,
-          avatar: true,
-          status: true,
-          lastLoginAt: true,
-          createdAt: true,
-          roles: true,
-        },
         skip: (page - 1) * limit,
         take: limit,
         orderBy: { createdAt: 'desc' },
@@ -91,20 +80,6 @@ export class UsersService {
             },
           },
         },
-      },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        phone: true,
-        avatar: true,
-        status: true,
-        lastLoginAt: true,
-        lastLoginIp: true,
-        twoFactorEnabled: true,
-        createdAt: true,
-        updatedAt: true,
-        roles: true,
       },
     });
 
@@ -220,7 +195,7 @@ export class UsersService {
         resourceType: 'user',
         resourceId: id,
         oldValues: { name: user.name, email: user.email, status: user.status },
-        newValues: dto,
+        newValues: dto as any,
       },
     });
 
