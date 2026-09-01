@@ -3,7 +3,7 @@ services:
     name: techshop-api
     runtime: node
     region: oregon
-    buildCommand: cd apps/api && npm install --include=dev && npx prisma generate && node -e "try{require('child_process').execSync('npx tsc -p tsconfig.json',{stdio:'inherit'})}catch(e){}"
+    buildCommand: cd apps/api && npm install --include=dev && npx prisma generate && node build.js
     startCommand: cd apps/api && npx prisma db push && node dist/main.js
     envVars:
       - key: DATABASE_URL

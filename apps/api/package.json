@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "build": "node -e \"try{require('child_process').execSync('npx tsc -p tsconfig.json',{stdio:'inherit'})}catch(e){}\"",
+    "build": "node build.js",
     "dev": "nest start --watch",
     "start": "node dist/main",
     "start:debug": "nest start --debug --watch",
