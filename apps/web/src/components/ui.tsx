@@ -65,11 +65,12 @@ export function Input({ className, label, error, ...props }: InputProps) {
 interface CardProps {
   children: React.ReactNode;
   className?: string;
+  onClick?: () => void;
 }
 
-export function Card({ children, className }: CardProps) {
+export function Card({ children, className, onClick }: CardProps) {
   return (
-    <div className={cn('rounded-xl border bg-card text-card-foreground shadow-sm', className)}>
+    <div onClick={onClick} className={cn('rounded-xl border bg-card text-card-foreground shadow-sm', className)}>
       {children}
     </div>
   );
