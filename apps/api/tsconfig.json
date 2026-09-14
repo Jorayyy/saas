@@ -12,7 +12,7 @@
     "baseUrl": "./",
     "incremental": true,
     "skipLibCheck": true,
-    "noEmitOnError": true,
+    "noEmitOnError": false,
     "strictNullChecks": false,
     "noImplicitAny": false,
     "strictBindCallApply": false,
