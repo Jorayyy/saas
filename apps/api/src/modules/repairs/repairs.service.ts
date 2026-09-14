@@ -279,6 +279,7 @@ export class RepairsService {
         { priority: 'desc' },
         { estimatedCompletion: 'asc' },
       ],
+      take: 100,
     });
   }
 

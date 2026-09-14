@@ -1,7 +1,8 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, Res } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, Res, HttpCode, HttpStatus } from '@nestjs/common';
+import { ParseUUIDPipe } from '@nestjs/common/pipes';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { Response } from 'express';
-import { ProductsService, CreateProductDto, UpdateProductDto, ProductQuery } from './products.service';
+import { ProductsService, CreateProductDto, UpdateProductDto, ProductQuery, AdjustStockDto } from './products.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -28,14 +29,14 @@ export class ProductsController {
   @Roles('ADMIN', 'MANAGER', 'INVENTORY_MANAGER')
   @ApiOperation({ summary: 'Get low stock products' })
   async getLowStock(@CurrentUser('tenantId') tenantId: string) {
-    return this.productsService.getLowStock(tenantId);
+    return this.productsService.getLowStock(tenantId, 100);
   }
 
   @Get('out-of-stock')
   @Roles('ADMIN', 'MANAGER', 'INVENTORY_MANAGER')
   @ApiOperation({ summary: 'Get out of stock products' })
   async getOutOfStock(@CurrentUser('tenantId') tenantId: string) {
-    return this.productsService.getOutOfStock(tenantId);
+    return this.productsService.getOutOfStock(tenantId, 100);
   }
 
   @Get('export')
@@ -67,7 +68,7 @@ export class ProductsController {
   @ApiOperation({ summary: 'Get product by ID' })
   async findOne(
     @CurrentUser('tenantId') tenantId: string,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.productsService.findOne(tenantId, id);
   }
@@ -77,7 +78,7 @@ export class ProductsController {
   @ApiOperation({ summary: 'Get product inventory movements' })
   async getMovements(
     @CurrentUser('tenantId') tenantId: string,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Query('page') page?: number,
     @Query('limit') limit?: number,
   ) {
@@ -85,6 +86,7 @@ export class ProductsController {
   }
 
   @Post()
+  @HttpCode(HttpStatus.CREATED)
   @Roles('ADMIN', 'MANAGER', 'INVENTORY_MANAGER')
   @ApiOperation({ summary: 'Create a new product' })
   async create(
@@ -95,6 +97,7 @@ export class ProductsController {
   }
 
   @Post('import')
+  @HttpCode(HttpStatus.CREATED)
   @Roles('ADMIN', 'MANAGER', 'INVENTORY_MANAGER')
   @ApiOperation({ summary: 'Bulk import products' })
   async bulkImport(
@@ -110,7 +113,7 @@ export class ProductsController {
   @ApiOperation({ summary: 'Update a product' })
   async update(
     @CurrentUser('tenantId') tenantId: string,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateProductDto,
   ) {
     return this.productsService.update(tenantId, id, dto);
@@ -121,7 +124,7 @@ export class ProductsController {
   @ApiOperation({ summary: 'Delete a product' })
   async remove(
     @CurrentUser('tenantId') tenantId: string,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.productsService.remove(tenantId, id);
   }
@@ -132,13 +135,8 @@ export class ProductsController {
   async adjustStock(
     @CurrentUser('tenantId') tenantId: string,
     @CurrentUser('id') userId: string,
-    @Param('id') productId: string,
-    @Body() body: {
-      adjustmentType: string;
-      quantity: number;
-      reason: string;
-      branchId: string;
-    },
+    @Param('id', ParseUUIDPipe) productId: string,
+    @Body() body: AdjustStockDto,
   ) {
     return this.productsService.adjustStock(
       tenantId,

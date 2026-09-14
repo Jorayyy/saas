@@ -100,7 +100,7 @@ export class ReportsService {
     // Get product details
     const productIds = productSales.map(ps => ps.productId);
     const products = await this.prisma.product.findMany({
-      where: { id: { in: productIds } },
+      where: { id: { in: productIds }, tenantId },
       select: { id: true, name: true, sku: true },
     });
 

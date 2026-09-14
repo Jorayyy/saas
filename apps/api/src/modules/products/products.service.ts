@@ -59,6 +59,13 @@ export interface BulkImportItem {
   unit?: string;
 }
 
+export interface AdjustStockDto {
+  adjustmentType: string;
+  quantity: number;
+  reason: string;
+  branchId: string;
+}
+
 @Injectable()
 export class ProductsService {
   private readonly logger = new Logger(ProductsService.name);
@@ -305,7 +312,7 @@ export class ProductsService {
 
     // Check if product has sales
     const hasSales = await this.prisma.saleItem.findFirst({
-      where: { productId: id },
+      where: { productId: id, tenantId },
     });
 
     if (hasSales) {
@@ -414,7 +421,7 @@ export class ProductsService {
     };
   }
 
-  async getLowStock(tenantId: string) {
+  async getLowStock(tenantId: string, take = 100) {
     const products = await this.prisma.product.findMany({
       where: {
         tenantId,
@@ -427,6 +434,7 @@ export class ProductsService {
         supplier: { select: { id: true, name: true } },
       },
       orderBy: { currentStock: 'asc' },
+      take,
     });
 
     return {
@@ -435,7 +443,7 @@ export class ProductsService {
     };
   }
 
-  async getOutOfStock(tenantId: string) {
+  async getOutOfStock(tenantId: string, take = 100) {
     const products = await this.prisma.product.findMany({
       where: {
         tenantId,
@@ -447,6 +455,7 @@ export class ProductsService {
         category: { select: { id: true, name: true } },
         supplier: { select: { id: true, name: true } },
       },
+      take,
     });
 
     return {
@@ -456,6 +465,10 @@ export class ProductsService {
   }
 
   async bulkImport(tenantId: string, items: BulkImportItem[], userId: string) {
+    if (items.length > 1000) {
+      throw new BadRequestException('Cannot import more than 1000 items at once');
+    }
+
     const results = { created: 0, updated: 0, errors: [] as any[] };
 
     for (const item of items) {

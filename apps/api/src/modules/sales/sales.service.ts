@@ -222,7 +222,7 @@ export class SalesService {
       // Use credit if customer
       if (dto.customerId && totalPaid < total) {
         const creditUsed = total - totalPaid;
-        const customer = await tx.customer.findUnique({ where: { id: dto.customerId } });
+        const customer = await tx.customer.findFirst({ where: { id: dto.customerId, tenantId } });
 
         if (customer && Number(customer.creditBalance) >= creditUsed) {
           await tx.creditTransaction.create({

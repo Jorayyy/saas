@@ -199,7 +199,14 @@ Provide: recommendations with reasoning.`;
     if (index >= 0) {
       this.providers[index] = { ...this.providers[index], ...updates };
     }
-    return this.providers[index];
+    const provider = this.providers[index];
+    if (!provider) return undefined;
+    return {
+      id: provider.id,
+      name: provider.name,
+      isActive: provider.isActive,
+      priority: provider.priority,
+    };
   }
 
   async chat(tenantId: string, message: string, history?: Array<{ role: string; content: string }>) {

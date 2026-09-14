@@ -1,4 +1,5 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
+import { ParseUUIDPipe } from '@nestjs/common/pipes';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { SuppliersService, CreateSupplierDto, UpdateSupplierDto, SupplierQuery } from './suppliers.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -31,7 +32,7 @@ export class SuppliersController {
   @ApiOperation({ summary: 'Get supplier by ID' })
   async findOne(
     @CurrentUser('tenantId') tenantId: string,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.suppliersService.findOne(tenantId, id);
   }
@@ -41,7 +42,7 @@ export class SuppliersController {
   @ApiOperation({ summary: 'Get supplier products' })
   async getProducts(
     @CurrentUser('tenantId') tenantId: string,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.suppliersService.getProducts(tenantId, id);
   }
@@ -51,7 +52,7 @@ export class SuppliersController {
   @ApiOperation({ summary: 'Get supplier purchase orders' })
   async getOrders(
     @CurrentUser('tenantId') tenantId: string,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.suppliersService.getOrders(tenantId, id);
   }
@@ -61,12 +62,13 @@ export class SuppliersController {
   @ApiOperation({ summary: 'Get supplier payments' })
   async getPayments(
     @CurrentUser('tenantId') tenantId: string,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.suppliersService.getPayments(tenantId, id);
   }
 
   @Post()
+  @HttpCode(HttpStatus.CREATED)
   @Roles('ADMIN', 'MANAGER', 'INVENTORY_MANAGER')
   @ApiOperation({ summary: 'Create a new supplier' })
   async create(
@@ -81,7 +83,7 @@ export class SuppliersController {
   @ApiOperation({ summary: 'Update a supplier' })
   async update(
     @CurrentUser('tenantId') tenantId: string,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateSupplierDto,
   ) {
     return this.suppliersService.update(tenantId, id, dto);
@@ -92,18 +94,19 @@ export class SuppliersController {
   @ApiOperation({ summary: 'Delete a supplier' })
   async remove(
     @CurrentUser('tenantId') tenantId: string,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.suppliersService.remove(tenantId, id);
   }
 
   @Post(':id/payments')
+  @HttpCode(HttpStatus.CREATED)
   @Roles('ADMIN', 'MANAGER', 'ACCOUNTANT')
   @ApiOperation({ summary: 'Add supplier payment' })
   async addPayment(
     @CurrentUser('tenantId') tenantId: string,
     @CurrentUser('id') userId: string,
-    @Param('id') supplierId: string,
+    @Param('id', ParseUUIDPipe) supplierId: string,
     @Body() dto: { amount: number; paymentMethod: string; reference?: string; notes?: string; purchaseOrderId?: string },
   ) {
     return this.suppliersService.addPayment(tenantId, supplierId, dto, userId);

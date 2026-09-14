@@ -2,6 +2,7 @@ import { Injectable, UnauthorizedException, ConflictException, BadRequestExcepti
 import { JwtService } from '@nestjs/jwt';
 import * as argon2 from 'argon2';
 import { PrismaService } from '../../prisma/prisma.service';
+import { randomBytes } from 'crypto';
 
 export interface LoginDto {
   email: string;
@@ -251,27 +252,32 @@ export class AuthService {
   }
 
   async refreshToken(refreshToken: string): Promise<{ accessToken: string }> {
+    let payload: any;
     try {
-      const payload = this.jwtService.verify(refreshToken);
-
-      const user = await this.prisma.user.findUnique({
-        where: { id: payload.sub },
-        include: {
-          roles: { include: { role: true } },
-        },
-      });
-
-      if (!user || user.status !== 'ACTIVE') {
-        throw new UnauthorizedException('Invalid token');
-      }
-
-      const roles = user.roles.map((ur: any) => ur.role.name);
-      const newAccessToken = await this.generateAccessToken(user.id, user.email, user.tenantId, roles);
-
-      return { accessToken: newAccessToken };
+      payload = this.jwtService.verify(refreshToken);
     } catch {
       throw new UnauthorizedException('Invalid refresh token');
     }
+
+    if (payload.type === 'password_reset') {
+      throw new UnauthorizedException('Invalid token type');
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: payload.sub },
+      include: {
+        roles: { include: { role: true } },
+      },
+    });
+
+    if (!user || user.status !== 'ACTIVE') {
+      throw new UnauthorizedException('Invalid token');
+    }
+
+    const roles = user.roles.map((ur: any) => ur.role.name);
+    const newAccessToken = await this.generateAccessToken(user.id, user.email, user.tenantId, roles);
+
+    return { accessToken: newAccessToken };
   }
 
   async logout(userId: string, tenantId: string): Promise<void> {

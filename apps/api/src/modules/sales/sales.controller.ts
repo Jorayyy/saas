@@ -1,4 +1,5 @@
-import { Controller, Get, Post, Body, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Query, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
+import { ParseUUIDPipe } from '@nestjs/common/pipes';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { SalesService, CreateSaleDto, CreateRefundDto, SaleQuery } from './sales.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -39,12 +40,13 @@ export class SalesController {
   @ApiOperation({ summary: 'Get sale by ID' })
   async findOne(
     @CurrentUser('tenantId') tenantId: string,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.salesService.findOne(tenantId, id);
   }
 
   @Post()
+  @HttpCode(HttpStatus.CREATED)
   @Roles('ADMIN', 'MANAGER', 'CASHIER')
   @ApiOperation({ summary: 'Create a new sale' })
   async create(
@@ -56,12 +58,13 @@ export class SalesController {
   }
 
   @Post(':id/refund')
+  @HttpCode(HttpStatus.CREATED)
   @Roles('ADMIN', 'MANAGER')
   @ApiOperation({ summary: 'Refund a sale' })
   async refund(
     @CurrentUser('tenantId') tenantId: string,
     @CurrentUser('id') userId: string,
-    @Param('id') saleId: string,
+    @Param('id', ParseUUIDPipe) saleId: string,
     @Body() dto: CreateRefundDto,
   ) {
     return this.salesService.refund(tenantId, saleId, dto, userId);

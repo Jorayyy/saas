@@ -188,6 +188,7 @@ export class SuppliersService {
         currentStock: true,
       },
       orderBy: { name: 'asc' },
+      take: 100,
     });
   }
 
@@ -207,6 +208,7 @@ export class SuppliersService {
         user: { select: { id: true, name: true } },
       },
       orderBy: { createdAt: 'desc' },
+      take: 100,
     });
   }
 
@@ -226,6 +228,7 @@ export class SuppliersService {
         user: { select: { id: true, name: true } },
       },
       orderBy: { createdAt: 'desc' },
+      take: 100,
     });
   }
 

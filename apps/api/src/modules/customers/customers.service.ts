@@ -255,6 +255,7 @@ export class CustomersService {
         },
       },
       orderBy: { createdAt: 'desc' },
+      take: 100,
     });
   }
 
@@ -337,6 +338,7 @@ export class CustomersService {
       where: { customerId, tenantId },
       include: { user: { select: { id: true, name: true } } },
       orderBy: { createdAt: 'desc' },
+      take: 100,
     });
 
     return {

@@ -1,4 +1,5 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
+import { ParseUUIDPipe } from '@nestjs/common/pipes';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { RepairsService, CreateRepairDto, UpdateRepairDto } from './repairs.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -48,18 +49,19 @@ export class RepairsController {
   @Get(':id')
   @Roles('ADMIN', 'MANAGER', 'TECHNICIAN', 'CASHIER', 'STAFF')
   @ApiOperation({ summary: 'Get repair ticket by ID' })
-  async findOne(@CurrentUser('tenantId') tenantId: string, @Param('id') id: string) {
+  async findOne(@CurrentUser('tenantId') tenantId: string, @Param('id', ParseUUIDPipe) id: string) {
     return this.repairsService.findOne(tenantId, id);
   }
 
   @Get(':id/timeline')
   @Roles('ADMIN', 'MANAGER', 'TECHNICIAN', 'CASHIER', 'STAFF')
   @ApiOperation({ summary: 'Get repair timeline' })
-  async getTimeline(@CurrentUser('tenantId') tenantId: string, @Param('id') id: string) {
+  async getTimeline(@CurrentUser('tenantId') tenantId: string, @Param('id', ParseUUIDPipe) id: string) {
     return this.repairsService.getTimeline(tenantId, id);
   }
 
   @Post()
+  @HttpCode(HttpStatus.CREATED)
   @Roles('ADMIN', 'MANAGER', 'CASHIER', 'TECHNICIAN')
   @ApiOperation({ summary: 'Create a new repair ticket' })
   async create(
@@ -76,7 +78,7 @@ export class RepairsController {
   async update(
     @CurrentUser('tenantId') tenantId: string,
     @CurrentUser('id') userId: string,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateRepairDto,
   ) {
     return this.repairsService.update(tenantId, id, dto, userId);
@@ -88,7 +90,7 @@ export class RepairsController {
   async assign(
     @CurrentUser('tenantId') tenantId: string,
     @CurrentUser('id') userId: string,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body('technicianId') technicianId: string,
   ) {
     return this.repairsService.assign(tenantId, id, technicianId, userId);
@@ -100,7 +102,7 @@ export class RepairsController {
   async complete(
     @CurrentUser('tenantId') tenantId: string,
     @CurrentUser('id') userId: string,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.repairsService.complete(tenantId, id, userId);
   }
@@ -111,7 +113,7 @@ export class RepairsController {
   async pickup(
     @CurrentUser('tenantId') tenantId: string,
     @CurrentUser('id') userId: string,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body('payments') payments: Array<{ method: string; amount: number }>,
   ) {
     return this.repairsService.pickup(tenantId, id, payments, userId);
@@ -123,19 +125,20 @@ export class RepairsController {
   async cancel(
     @CurrentUser('tenantId') tenantId: string,
     @CurrentUser('id') userId: string,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body('reason') reason?: string,
   ) {
     return this.repairsService.cancel(tenantId, id, userId, reason);
   }
 
   @Post(':id/parts')
+  @HttpCode(HttpStatus.CREATED)
   @Roles('ADMIN', 'MANAGER', 'TECHNICIAN')
   @ApiOperation({ summary: 'Add part to repair' })
   async addPart(
     @CurrentUser('tenantId') tenantId: string,
     @CurrentUser('id') userId: string,
-    @Param('id') repairId: string,
+    @Param('id', ParseUUIDPipe) repairId: string,
     @Body() dto: { productId: string; quantity: number; unitCost: number },
   ) {
     return this.repairsService.addPart(tenantId, repairId, dto, userId);
@@ -147,8 +150,8 @@ export class RepairsController {
   async removePart(
     @CurrentUser('tenantId') tenantId: string,
     @CurrentUser('id') userId: string,
-    @Param('id') repairId: string,
-    @Param('partId') partId: string,
+    @Param('id', ParseUUIDPipe) repairId: string,
+    @Param('partId', ParseUUIDPipe) partId: string,
   ) {
     return this.repairsService.removePart(tenantId, repairId, partId, userId);
   }

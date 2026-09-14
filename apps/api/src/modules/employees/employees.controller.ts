@@ -1,4 +1,5 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
+import { ParseUUIDPipe } from '@nestjs/common/pipes';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { EmployeesService, CreateEmployeeDto, UpdateEmployeeDto, LogAttendanceDto, CreatePayrollDto } from './employees.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -33,7 +34,7 @@ export class EmployeesController {
   @ApiOperation({ summary: 'Get employee by ID' })
   async findOne(
     @CurrentUser('tenantId') tenantId: string,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.employeesService.findOne(tenantId, id);
   }
@@ -43,7 +44,7 @@ export class EmployeesController {
   @ApiOperation({ summary: 'Get employee attendance' })
   async getAttendance(
     @CurrentUser('tenantId') tenantId: string,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Query('from') from?: string,
     @Query('to') to?: string,
   ) {
@@ -51,6 +52,7 @@ export class EmployeesController {
   }
 
   @Post()
+  @HttpCode(HttpStatus.CREATED)
   @Roles('ADMIN', 'MANAGER')
   @ApiOperation({ summary: 'Create a new employee' })
   async create(
@@ -65,7 +67,7 @@ export class EmployeesController {
   @ApiOperation({ summary: 'Update employee' })
   async update(
     @CurrentUser('tenantId') tenantId: string,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateEmployeeDto,
   ) {
     return this.employeesService.update(tenantId, id, dto);
@@ -76,12 +78,13 @@ export class EmployeesController {
   @ApiOperation({ summary: 'Delete employee' })
   async remove(
     @CurrentUser('tenantId') tenantId: string,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.employeesService.remove(tenantId, id);
   }
 
   @Post('attendance')
+  @HttpCode(HttpStatus.CREATED)
   @Roles('ADMIN', 'MANAGER', 'EMPLOYEE')
   @ApiOperation({ summary: 'Log attendance' })
   async logAttendance(
@@ -93,6 +96,7 @@ export class EmployeesController {
   }
 
   @Post('payroll')
+  @HttpCode(HttpStatus.CREATED)
   @Roles('ADMIN', 'MANAGER')
   @ApiOperation({ summary: 'Create payroll' })
   async createPayroll(
@@ -109,7 +113,7 @@ export class EmployeesController {
   async approvePayroll(
     @CurrentUser('tenantId') tenantId: string,
     @CurrentUser('id') userId: string,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.employeesService.approvePayroll(tenantId, id, userId);
   }

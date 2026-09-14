@@ -182,9 +182,15 @@ export function TableBody({ children, className }: TableProps) {
   );
 }
 
-export function TableRow({ children, className }: TableProps) {
+interface TableRowProps {
+  children: React.ReactNode;
+  className?: string;
+  onClick?: () => void;
+}
+
+export function TableRow({ children, className, onClick }: TableRowProps) {
   return (
-    <tr className={cn('border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted', className)}>
+    <tr onClick={onClick} className={cn('border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted', className)}>
       {children}
     </tr>
   );

@@ -401,7 +401,10 @@ model StockTransferItem {
   quantityReceived Int?
 
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
+  @@index([tenantId])
+  @@index([transferId])
   @@map("stock_transfer_items")
 }
 
@@ -474,6 +477,7 @@ model Customer {
   deletedAt DateTime?
 
   @@unique([tenantId, customerCode])
+  @@unique([tenantId, email], name: "unique_customer_email_per_tenant")
   @@index([tenantId])
   @@index([tenantId, name])
   @@index([tenantId, phone])
@@ -505,6 +509,7 @@ model CustomerDevice {
   updatedAt DateTime @updatedAt
 
   @@index([customerId])
+  @@index([tenantId])
   @@map("customer_devices")
 }
 
@@ -543,6 +548,7 @@ model Supplier {
   updatedAt DateTime @updatedAt
   deletedAt DateTime?
 
+  @@unique([tenantId, email], name: "unique_supplier_email_per_tenant")
   @@index([tenantId])
   @@map("suppliers")
 }
@@ -623,6 +629,7 @@ model SaleItem {
 
   createdAt DateTime @default(now())
 
+  @@index([tenantId])
   @@map("sale_items")
 }
 
@@ -639,6 +646,7 @@ model SalePayment {
   processedAt DateTime @default(now())
   createdAt   DateTime @default(now())
 
+  @@index([tenantId])
   @@map("sale_payments")
 }
 
@@ -709,6 +717,7 @@ model SaleRefundItem {
 
   createdAt DateTime @default(now())
 
+  @@index([tenantId])
   @@map("sale_refund_items")
 }
 
@@ -809,6 +818,7 @@ model RepairPart {
 
   createdAt DateTime @default(now())
 
+  @@index([tenantId])
   @@map("repair_parts")
 }
 
@@ -827,6 +837,7 @@ model RepairTimeline {
 
   createdAt DateTime @default(now())
 
+  @@index([tenantId])
   @@index([repairId, createdAt(sort: Desc)])
   @@map("repair_timeline")
 }
@@ -845,6 +856,7 @@ model RepairImage {
 
   createdAt DateTime @default(now())
 
+  @@index([tenantId])
   @@map("repair_images")
 }
 
@@ -1068,6 +1080,7 @@ model PurchaseOrderItem {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@index([tenantId])
   @@map("purchase_order_items")
 }
 
@@ -1090,6 +1103,8 @@ model SupplierPayment {
 
   createdAt DateTime @default(now())
 
+  @@index([tenantId])
+  @@index([supplierId])
   @@map("supplier_payments")
 }
 
@@ -1113,6 +1128,7 @@ model CreditTransaction {
 
   createdAt DateTime @default(now())
 
+  @@index([tenantId])
   @@index([customerId, createdAt(sort: Desc)])
   @@map("credit_transactions")
 }

@@ -1,4 +1,5 @@
-import { Controller, Get, Post, Put, Body, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Put, Body, Param, Query, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
+import { ParseUUIDPipe } from '@nestjs/common/pipes';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { InventoryService, CreateTransferDto, StockAdjustmentDto } from './inventory.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -39,6 +40,7 @@ export class InventoryController {
   }
 
   @Post('adjust')
+  @HttpCode(HttpStatus.CREATED)
   @Roles('ADMIN', 'MANAGER', 'INVENTORY_MANAGER')
   @ApiOperation({ summary: 'Adjust stock' })
   async adjustStock(
@@ -50,6 +52,7 @@ export class InventoryController {
   }
 
   @Post('transfer')
+  @HttpCode(HttpStatus.CREATED)
   @Roles('ADMIN', 'MANAGER', 'INVENTORY_MANAGER')
   @ApiOperation({ summary: 'Create stock transfer' })
   async createTransfer(
@@ -77,7 +80,7 @@ export class InventoryController {
   @ApiOperation({ summary: 'Get transfer details' })
   async findOneTransfer(
     @CurrentUser('tenantId') tenantId: string,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.inventoryService.findOne(tenantId, id);
   }
@@ -88,7 +91,7 @@ export class InventoryController {
   async receiveTransfer(
     @CurrentUser('tenantId') tenantId: string,
     @CurrentUser('id') userId: string,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.inventoryService.receiveTransfer(tenantId, id, userId);
   }
@@ -99,7 +102,7 @@ export class InventoryController {
   async cancelTransfer(
     @CurrentUser('tenantId') tenantId: string,
     @CurrentUser('id') userId: string,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.inventoryService.cancelTransfer(tenantId, id, userId);
   }

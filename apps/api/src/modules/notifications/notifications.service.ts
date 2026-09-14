@@ -93,6 +93,14 @@ export class NotificationsService {
   }
 
   async markAsRead(tenantId: string, id: string) {
+    const notification = await this.prisma.notification.findFirst({
+      where: { id, tenantId },
+    });
+
+    if (!notification) {
+      throw new Error('Notification not found');
+    }
+
     return this.prisma.notification.update({
       where: { id },
       data: { isRead: true, readAt: new Date() },
@@ -115,6 +123,14 @@ export class NotificationsService {
   }
 
   async remove(tenantId: string, id: string) {
+    const notification = await this.prisma.notification.findFirst({
+      where: { id, tenantId },
+    });
+
+    if (!notification) {
+      throw new Error('Notification not found');
+    }
+
     await this.prisma.notification.delete({ where: { id } });
     return { message: 'Notification deleted' };
   }

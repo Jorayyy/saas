@@ -1,4 +1,5 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
+import { ParseUUIDPipe } from '@nestjs/common/pipes';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { CustomersService, CreateCustomerDto, UpdateCustomerDto, CustomerQuery, CreateDeviceDto } from './customers.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -38,7 +39,7 @@ export class CustomersController {
   @ApiOperation({ summary: 'Get customer by ID' })
   async findOne(
     @CurrentUser('tenantId') tenantId: string,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.customersService.findOne(tenantId, id);
   }
@@ -48,7 +49,7 @@ export class CustomersController {
   @ApiOperation({ summary: 'Get customer devices' })
   async getDevices(
     @CurrentUser('tenantId') tenantId: string,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.customersService.getDevices(tenantId, id);
   }
@@ -58,7 +59,7 @@ export class CustomersController {
   @ApiOperation({ summary: 'Get customer credits' })
   async getCredits(
     @CurrentUser('tenantId') tenantId: string,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.customersService.getCredits(tenantId, id);
   }
@@ -68,12 +69,13 @@ export class CustomersController {
   @ApiOperation({ summary: 'Get customer lifetime value' })
   async getLifetimeValue(
     @CurrentUser('tenantId') tenantId: string,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.customersService.getLifetimeValue(tenantId, id);
   }
 
   @Post()
+  @HttpCode(HttpStatus.CREATED)
   @Roles('ADMIN', 'MANAGER', 'CASHIER')
   @ApiOperation({ summary: 'Create a new customer' })
   async create(
@@ -88,7 +90,7 @@ export class CustomersController {
   @ApiOperation({ summary: 'Update a customer' })
   async update(
     @CurrentUser('tenantId') tenantId: string,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateCustomerDto,
   ) {
     return this.customersService.update(tenantId, id, dto);
@@ -99,29 +101,31 @@ export class CustomersController {
   @ApiOperation({ summary: 'Delete a customer' })
   async remove(
     @CurrentUser('tenantId') tenantId: string,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.customersService.remove(tenantId, id);
   }
 
   @Post(':id/devices')
+  @HttpCode(HttpStatus.CREATED)
   @Roles('ADMIN', 'MANAGER', 'CASHIER', 'TECHNICIAN')
   @ApiOperation({ summary: 'Add customer device' })
   async addDevice(
     @CurrentUser('tenantId') tenantId: string,
-    @Param('id') customerId: string,
+    @Param('id', ParseUUIDPipe) customerId: string,
     @Body() dto: CreateDeviceDto,
   ) {
     return this.customersService.addDevice(tenantId, customerId, dto);
   }
 
   @Post(':id/credits')
+  @HttpCode(HttpStatus.CREATED)
   @Roles('ADMIN', 'MANAGER', 'CASHIER')
   @ApiOperation({ summary: 'Add customer credit' })
   async addCredit(
     @CurrentUser('tenantId') tenantId: string,
     @CurrentUser('id') userId: string,
-    @Param('id') customerId: string,
+    @Param('id', ParseUUIDPipe) customerId: string,
     @Body() dto: { amount: number; type: string; notes?: string },
   ) {
     return this.customersService.addCredit(tenantId, customerId, dto, userId);

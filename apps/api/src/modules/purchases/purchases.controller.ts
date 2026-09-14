@@ -1,4 +1,5 @@
-import { Controller, Get, Post, Put, Body, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Put, Body, Param, Query, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
+import { ParseUUIDPipe } from '@nestjs/common/pipes';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { PurchasesService, CreatePurchaseOrderDto } from './purchases.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -31,12 +32,13 @@ export class PurchasesController {
   @ApiOperation({ summary: 'Get purchase order by ID' })
   async findOne(
     @CurrentUser('tenantId') tenantId: string,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.purchasesService.findOne(tenantId, id);
   }
 
   @Post()
+  @HttpCode(HttpStatus.CREATED)
   @Roles('ADMIN', 'MANAGER', 'INVENTORY_MANAGER')
   @ApiOperation({ summary: 'Create purchase order' })
   async create(
@@ -52,7 +54,7 @@ export class PurchasesController {
   @ApiOperation({ summary: 'Submit purchase order' })
   async submit(
     @CurrentUser('tenantId') tenantId: string,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.purchasesService.submit(tenantId, id);
   }
@@ -63,7 +65,7 @@ export class PurchasesController {
   async receive(
     @CurrentUser('tenantId') tenantId: string,
     @CurrentUser('id') userId: string,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body('items') items: Array<{ itemId: string; quantityReceived: number }>,
   ) {
     return this.purchasesService.receive(tenantId, id, userId, items);
@@ -74,7 +76,7 @@ export class PurchasesController {
   @ApiOperation({ summary: 'Cancel purchase order' })
   async cancel(
     @CurrentUser('tenantId') tenantId: string,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.purchasesService.cancel(tenantId, id);
   }

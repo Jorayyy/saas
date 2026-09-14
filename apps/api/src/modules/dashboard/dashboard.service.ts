@@ -174,7 +174,7 @@ export class DashboardService {
 
     const productIds = topProducts.map((tp: any) => tp.productId);
     const products = await this.prisma.product.findMany({
-      where: { id: { in: productIds } },
+      where: { id: { in: productIds }, tenantId },
       select: { id: true, name: true, sku: true },
     });
 
@@ -206,7 +206,7 @@ export class DashboardService {
 
     const techIds = topTechs.map((tt: any) => tt.technicianId).filter(Boolean) as string[];
     const technicians = await this.prisma.user.findMany({
-      where: { id: { in: techIds } },
+      where: { id: { in: techIds }, tenantId },
       select: { id: true, name: true, email: true },
     });
 

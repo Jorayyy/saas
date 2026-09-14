@@ -1,9 +1,10 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, ForbiddenException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { TenantsService, CreateTenantDto, UpdateTenantDto, TenantQuery } from './tenants.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
 
 @ApiTags('Tenants')
 @Controller('tenants')
@@ -28,7 +29,14 @@ export class TenantsController {
   @Get(':id')
   @Roles('SUPER_ADMIN', 'TENANT_OWNER', 'ADMIN')
   @ApiOperation({ summary: 'Get tenant by ID' })
-  async findOne(@Param('id') id: string) {
+  async findOne(
+    @CurrentUser('tenantId') currentUserTenantId: string,
+    @CurrentUser('roles') roles: string[],
+    @Param('id') id: string,
+  ) {
+    if (!roles.includes('SUPER_ADMIN') && currentUserTenantId !== id) {
+      throw new ForbiddenException('Cannot access tenant data for another tenant');
+    }
     return this.tenantsService.findOne(id);
   }
 
@@ -42,7 +50,15 @@ export class TenantsController {
   @Put(':id')
   @Roles('SUPER_ADMIN', 'TENANT_OWNER')
   @ApiOperation({ summary: 'Update tenant' })
-  async update(@Param('id') id: string, @Body() dto: UpdateTenantDto) {
+  async update(
+    @CurrentUser('tenantId') currentUserTenantId: string,
+    @CurrentUser('roles') roles: string[],
+    @Param('id') id: string,
+    @Body() dto: UpdateTenantDto,
+  ) {
+    if (!roles.includes('SUPER_ADMIN') && currentUserTenantId !== id) {
+      throw new ForbiddenException('Cannot modify tenant data for another tenant');
+    }
     return this.tenantsService.update(id, dto);
   }
 
@@ -57,16 +73,28 @@ export class TenantsController {
   @Roles('SUPER_ADMIN', 'TENANT_OWNER')
   @ApiOperation({ summary: 'Update tenant settings' })
   async updateSettings(
+    @CurrentUser('tenantId') currentUserTenantId: string,
+    @CurrentUser('roles') roles: string[],
     @Param('id') id: string,
     @Body() settings: Record<string, any>,
   ) {
+    if (!roles.includes('SUPER_ADMIN') && currentUserTenantId !== id) {
+      throw new ForbiddenException('Cannot modify settings for another tenant');
+    }
     return this.tenantsService.updateSettings(id, settings);
   }
 
   @Get(':id/modules')
   @Roles('SUPER_ADMIN', 'TENANT_OWNER', 'ADMIN')
   @ApiOperation({ summary: 'Get tenant modules' })
-  async getModules(@Param('id') id: string) {
+  async getModules(
+    @CurrentUser('tenantId') currentUserTenantId: string,
+    @CurrentUser('roles') roles: string[],
+    @Param('id') id: string,
+  ) {
+    if (!roles.includes('SUPER_ADMIN') && currentUserTenantId !== id) {
+      throw new ForbiddenException('Cannot access modules for another tenant');
+    }
     return this.tenantsService.getModules(id);
   }
 
@@ -74,11 +102,16 @@ export class TenantsController {
   @Roles('SUPER_ADMIN', 'TENANT_OWNER')
   @ApiOperation({ summary: 'Update tenant module' })
   async updateModule(
+    @CurrentUser('tenantId') currentUserTenantId: string,
+    @CurrentUser('roles') roles: string[],
     @Param('id') id: string,
     @Param('module') module: string,
     @Body('enabled') enabled: boolean,
     @Body('settings') settings?: Record<string, any>,
   ) {
+    if (!roles.includes('SUPER_ADMIN') && currentUserTenantId !== id) {
+      throw new ForbiddenException('Cannot modify modules for another tenant');
+    }
     return this.tenantsService.updateModule(id, module, enabled, settings);
   }
 

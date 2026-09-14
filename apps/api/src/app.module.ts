@@ -1,6 +1,8 @@
 import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerGuard } from '@nestjs/throttler';
 import { PrismaModule } from './prisma/prisma.module';
 import { TenantMiddleware } from './common/middleware/tenant.middleware';
 import { AuthModule } from './modules/auth/auth.module';
@@ -56,9 +58,9 @@ import { AuditModule } from './modules/audit/audit.module';
     CustomersModule,
     SuppliersModule,
     PurchasesModule,
-SalesModule,
-PaymentsModule,
-RepairsModule,
+    SalesModule,
+    PaymentsModule,
+    RepairsModule,
     EmployeesModule,
     ExpensesModule,
     ReportsModule,
@@ -71,6 +73,12 @@ RepairsModule,
     HealthModule,
     BackupsModule,
     AuditModule,
+  ],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
   ],
 })
 export class AppModule implements NestModule {

@@ -1,4 +1,5 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
+import { ParseUUIDPipe } from '@nestjs/common/pipes';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { ExpensesService, CreateExpenseDto, UpdateExpenseDto, ExpenseQuery, CreateExpenseCategoryDto } from './expenses.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -43,6 +44,7 @@ export class ExpensesController {
   }
 
   @Post('categories')
+  @HttpCode(HttpStatus.CREATED)
   @Roles('ADMIN', 'MANAGER')
   @ApiOperation({ summary: 'Create expense category' })
   async createCategory(
@@ -57,7 +59,7 @@ export class ExpensesController {
   @ApiOperation({ summary: 'Update expense category' })
   async updateCategory(
     @CurrentUser('tenantId') tenantId: string,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: Partial<CreateExpenseCategoryDto>,
   ) {
     return this.expensesService.updateCategory(tenantId, id, dto);
@@ -68,7 +70,7 @@ export class ExpensesController {
   @ApiOperation({ summary: 'Delete expense category' })
   async deleteCategory(
     @CurrentUser('tenantId') tenantId: string,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.expensesService.deleteCategory(tenantId, id);
   }
@@ -78,12 +80,13 @@ export class ExpensesController {
   @ApiOperation({ summary: 'Get expense by ID' })
   async findOne(
     @CurrentUser('tenantId') tenantId: string,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.expensesService.findOne(tenantId, id);
   }
 
   @Post()
+  @HttpCode(HttpStatus.CREATED)
   @Roles('ADMIN', 'MANAGER', 'ACCOUNTANT')
   @ApiOperation({ summary: 'Create a new expense' })
   async create(
@@ -99,7 +102,7 @@ export class ExpensesController {
   @ApiOperation({ summary: 'Update expense' })
   async update(
     @CurrentUser('tenantId') tenantId: string,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateExpenseDto,
   ) {
     return this.expensesService.update(tenantId, id, dto);
@@ -110,7 +113,7 @@ export class ExpensesController {
   @ApiOperation({ summary: 'Delete expense' })
   async remove(
     @CurrentUser('tenantId') tenantId: string,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.expensesService.remove(tenantId, id);
   }
@@ -120,7 +123,7 @@ export class ExpensesController {
   @ApiOperation({ summary: 'Approve expense' })
   async approve(
     @CurrentUser('tenantId') tenantId: string,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.expensesService.approve(tenantId, id);
   }
@@ -130,7 +133,7 @@ export class ExpensesController {
   @ApiOperation({ summary: 'Reject expense' })
   async reject(
     @CurrentUser('tenantId') tenantId: string,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body('reason') reason?: string,
   ) {
     return this.expensesService.reject(tenantId, id, reason);
