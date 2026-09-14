@@ -3,8 +3,8 @@ services:
     name: techshop-api
     runtime: node
     region: oregon
-    buildCommand: cd apps/api && npm install --include=dev && npx prisma generate && node build.js
-    startCommand: cd apps/api && node start.js
+    buildCommand: cd apps/api && npm install --include=dev && npx prisma generate && npx prisma db push --force-reset --accept-data-loss && node build.js
+    startCommand: cd apps/api && node dist/main.js
     envVars:
       - key: DATABASE_URL
         sync: false
