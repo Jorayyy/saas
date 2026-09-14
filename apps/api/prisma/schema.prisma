@@ -477,7 +477,6 @@ model Customer {
   deletedAt DateTime?
 
   @@unique([tenantId, customerCode])
-  @@unique([tenantId, email], name: "unique_customer_email_per_tenant")
   @@index([tenantId])
   @@index([tenantId, name])
   @@index([tenantId, phone])
@@ -548,7 +547,6 @@ model Supplier {
   updatedAt DateTime @updatedAt
   deletedAt DateTime?
 
-  @@unique([tenantId, email], name: "unique_supplier_email_per_tenant")
   @@index([tenantId])
   @@map("suppliers")
 }
