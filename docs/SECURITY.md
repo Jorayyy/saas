@@ -14,23 +14,15 @@
 
 ### Password Storage
 
-- **Algorithm**: Argon2id (via `Hash::make()`)
+- **Algorithm**: Argon2id (via `argon2` npm package)
 - **Config**: MEMORY_COST=65536, TIME_COST=4, THREADS=3
 - **Never**: MD5, SHA1, SHA256 for passwords
 
-### Session Management
+### Token Authentication (JWT)
 
-- HTTP-only, Secure, SameSite=Lax cookies
-- Session timeout: 24 hours (web), 60 days (remember me)
-- Session fixation prevention via regeneration on login
-- Session invalidation on password change
-- Maximum concurrent sessions configurable per tenant
-
-### Token Authentication (API)
-
-- Laravel Sanctum personal access tokens
-- Tokens scoped to specific abilities
-- Token expiration configurable
+- JWT access tokens (15min default) + refresh tokens (7d default)
+- Tokens contain `sub`, `email`, `tenantId`, `roles` claims
+- Token validated via `JwtAuthGuard` on protected routes
 - Token revocation on user deletion or role change
 
 ### Brute Force Protection
@@ -71,11 +63,25 @@ User effective permissions = UNION of all role permissions
 
 ### Authorization Layers
 
-1. **Route middleware** — `role:admin,manager` checks
-2. **Controller policy** — `$this->authorize('update', $product)`
+1. **Route guards** — `@UseGuards(JwtAuthGuard, RolesGuard)` decorators
+2. **Controller-level** — `@Roles('ADMIN')` decorator
 3. **Service layer** — explicit permission checks before operations
-4. **Query scope** — automatic tenant scoping
-5. **API middleware** — Sanctum ability checks
+4. **Middleware** — TenantMiddleware extracts tenant context per request
+5. **API middleware** — Bearer token validation
+
+### Default Roles
+
+| Role | Description |
+|------|-------------|
+| SUPER_ADMIN | Full system access across tenants |
+| TENANT_OWNER | Full access within tenant |
+| ADMIN | Administrator access |
+| MANAGER | Operations management (no user/role management) |
+| CASHIER | POS and sales operations |
+| TECHNICIAN | Repair ticket operations |
+| INVENTORY_MANAGER | Products, inventory, suppliers |
+| ACCOUNTANT | Reports and expenses |
+| STAFF | Basic read access |
 
 ### Never Trust Client-Side
 
@@ -86,24 +92,21 @@ User effective permissions = UNION of all role permissions
 
 ## CSRF Protection
 
-- Laravel CSRF token on all web forms
-- Sanctum SPA authentication for API calls from same domain
-- CSRF token rotation on login
-- SameSite cookie attribute
+- SameSite=Lax cookie attribute for session cookies
+- Bearer token authentication for API calls (stateless, no CSRF vulnerability)
+- CORS configured to restrict origins
 
 ## XSS Protection
 
-- `{{ }}` auto-escaping in Blade templates
-- `@js()` directive for JavaScript data (JSON encoding)
+- Helmet security headers enabled (`X-Content-Type-Options`, `X-Frame-Options`, etc.)
 - Content-Security-Policy headers
-- X-Content-Type-Options: nosniff
-- X-XSS-Protection: 1; mode=block
+- React auto-escaping in JSX templates
 - Input sanitization on all user inputs
 - Output encoding in API responses
 
 ## SQL Injection Prevention
 
-- Eloquent ORM parameterized queries (automatic)
+- Prisma ORM parameterized queries (automatic)
 - Query builder parameterized queries (automatic)
 - Raw queries MUST use parameter binding
 - Never concatenate user input into SQL
@@ -111,15 +114,16 @@ User effective permissions = UNION of all role permissions
 
 ## Rate Limiting
 
-```php
-// routes/api.php
-Route::middleware('throttle:60,1')->group(function () {
-    Route::apiResource('products', ProductController::class);
-});
-
-Route::middleware('throttle:login')->group(function () {
-    Route::post('/auth/login', [AuthController::class, 'login']);
-});
+```typescript
+// Using @nestjs/throttler
+@Module({
+  imports: [
+    ThrottlerModule.forRoot([{
+      ttl: 60000,
+      limit: 60,
+    }]),
+  ],
+})
 ```
 
 | Endpoint | Limit |
@@ -162,12 +166,11 @@ Permissions-Policy: camera=(), microphone=(), geolocation=()
 All secrets stored in `.env` (never in code):
 
 ```
-APP_KEY=base64:...
-DB_PASSWORD=...
-REDIS_PASSWORD=...
-MAIL_PASSWORD=...
+DATABASE_URL=postgresql://...
+JWT_SECRET=...
+JWT_REFRESH_SECRET=...
+REDIS_URL=redis://...
 AI_API_KEY=...
-ENCRYPTION_KEY=...
 BACKUP_ENCRYPTION_KEY=...
 ```
 
@@ -175,7 +178,6 @@ BACKUP_ENCRYPTION_KEY=...
 
 Sensitive model fields encrypted at rest:
 
-- `users.two_factor_secret`
 - API keys in settings
 - Webhook secrets
 
@@ -183,17 +185,17 @@ Sensitive model fields encrypted at rest:
 
 - Database passwords: rotate quarterly
 - API keys: rotate annually
-- APP_KEY: never rotate unless compromised
+- JWT_SECRET: never rotate unless compromised
 - Backup encryption keys: rotate annually
 
 ## Tenant Data Isolation
 
 ### Enforcement Points
 
-1. **Middleware** — TenantResolver sets current tenant
-2. **Eloquent scopes** — Global scope on every tenant model
-3. **Database constraints** — FK to tenant_id
-4. **Query builder** — Explicit tenant scoping in raw queries
+1. **Middleware** — TenantMiddleware sets current tenant from JWT
+2. **PrismaService** — Request-scoped tenant context via `setTenant()`
+3. **Database constraints** — FK to tenant_id on all business tables
+4. **Query scoping** — Explicit tenantId in all service queries
 5. **Code review** — Mandatory review for new queries
 6. **Tests** — Automated cross-tenant access tests
 
@@ -209,20 +211,21 @@ Sensitive model fields encrypted at rest:
 
 ### Server-Side Validation
 
-```php
-// Form Request classes for every endpoint
-class StoreProductRequest extends FormRequest
-{
-    public function rules(): array
-    {
-        return [
-            'name' => 'required|string|max:255',
-            'sku' => 'required|string|max:50|unique:products,sku,' . $this->tenant_id . ',tenant_id',
-            'selling_price' => 'required|numeric|min:0',
-            'purchase_cost' => 'required|numeric|min:0',
-        ];
-    }
-}
+```typescript
+// Zod schemas in packages/validation
+// Class-based DTOs with class-validator decorators
+// Global ValidationPipe with whitelist and transform
+
+app.useGlobalPipes(
+  new ValidationPipe({
+    whitelist: true,
+    forbidNonWhitelisted: true,
+    transform: true,
+    transformOptions: {
+      enableImplicitConversion: true,
+    },
+  }),
+);
 ```
 
 ### Sanitization
@@ -239,12 +242,12 @@ class StoreProductRequest extends FormRequest
 ### Authentication
 
 - Bearer token required on all endpoints (except public)
-- Token validated on every request
+- Token validated on every request via JwtAuthGuard
 - Token revocation checked
 
 ### Authorization
 
-- Permission checked on every endpoint
+- Permission checked on every endpoint via RolesGuard
 - Role-based access enforced
 - Resource ownership verified
 
@@ -258,7 +261,7 @@ class StoreProductRequest extends FormRequest
 ### Transport Security
 
 - HTTPS required in production
-- HSTS header enabled
+- HSTS header enabled (via Helmet)
 - TLS 1.2+ only
 - Strong cipher suites
 
@@ -293,23 +296,21 @@ class StoreProductRequest extends FormRequest
 
 ### Dependency Scanning
 
-- `composer audit` in CI/CD
 - `npm audit` in CI/CD
 - Automated alerts for known vulnerabilities
 - Security update policy: critical within 24h, high within 72h
 
 ### Code Security
 
-- Static analysis (PHPStan level 8)
+- TypeScript strict mode for type safety
 - No `eval()`, `exec()`, `system()` with user input
 - No `unserialize()` on untrusted data
-- No `preg_replace` with `/e` modifier
 
 ## Incident Response
 
 ### Automated
 
-1. Error detected → logged with context
+1. Error detected → GlobalExceptionFilter logs with context
 2. AI analyzes severity and impact
 3. Critical errors → immediate notification
 4. Suspicious activity → flagged and logged
@@ -338,10 +339,10 @@ class StoreProductRequest extends FormRequest
 ## Security Checklist
 
 - [ ] Passwords hashed with Argon2id
-- [ ] Session fixation prevented
-- [ ] CSRF tokens on all forms
-- [ ] XSS protection via output encoding
-- [ ] SQL injection prevented via ORM
+- [ ] JWT tokens with short expiration
+- [ ] Refresh token rotation
+- [ ] XSS protection via Helmet headers
+- [ ] SQL injection prevented via Prisma ORM
 - [ ] Rate limiting on sensitive endpoints
 - [ ] File upload validation
 - [ ] Input validation on all endpoints

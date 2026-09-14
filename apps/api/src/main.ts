@@ -7,7 +7,16 @@ import { GlobalExceptionFilter } from './common/filters/global-exception.filter'
 import { AuditInterceptor } from './common/interceptors/audit.interceptor';
 import { PrismaService } from './prisma/prisma.service';
 
+function validateEnv() {
+  const required = ['DATABASE_URL', 'JWT_SECRET'];
+  const missing = required.filter((key) => !process.env[key]);
+  if (missing.length > 0) {
+    throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
+  }
+}
+
 async function bootstrap() {
+  validateEnv();
   const app = await NestFactory.create(AppModule);
 
   // Security

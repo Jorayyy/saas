@@ -172,14 +172,14 @@ export class DashboardService {
       take: limit,
     });
 
-    const productIds = topProducts.map(tp => tp.productId);
+    const productIds = topProducts.map((tp: any) => tp.productId);
     const products = await this.prisma.product.findMany({
       where: { id: { in: productIds } },
       select: { id: true, name: true, sku: true },
     });
 
-    return topProducts.map(tp => {
-      const product = products.find(p => p.id === tp.productId);
+    return topProducts.map((tp: any) => {
+      const product = products.find((p: any) => p.id === tp.productId);
       return {
         product,
         totalRevenue: Number(tp._sum.total || 0),
@@ -204,14 +204,14 @@ export class DashboardService {
       take: limit,
     });
 
-    const techIds = topTechs.map(tt => tt.technicianId).filter(Boolean) as string[];
+    const techIds = topTechs.map((tt: any) => tt.technicianId).filter(Boolean) as string[];
     const technicians = await this.prisma.user.findMany({
       where: { id: { in: techIds } },
       select: { id: true, name: true, email: true },
     });
 
-    return topTechs.map(tt => ({
-      technician: technicians.find(t => t.id === tt.technicianId),
+    return topTechs.map((tt: any) => ({
+      technician: technicians.find((t: any) => t.id === tt.technicianId),
       completedRepairs: tt._count,
     }));
   }

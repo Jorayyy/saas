@@ -1,7 +1,9 @@
 import { PrismaClient } from '@prisma/client';
-import * as bcrypt from 'argon2';
+import * as argon2 from 'argon2';
 
 const prisma = new PrismaClient();
+
+const SEED_PASSWORD = process.env.SEED_PASSWORD || 'Admin@12345';
 
 async function main() {
   console.log('Seeding database...');
@@ -17,8 +19,8 @@ async function main() {
   });
   console.log('Tenant created:', tenant.id);
 
-  // Create admin user
-  const hashedPassword = await bcrypt.hash('admin123');
+  // Create admin user with a strong password
+  const hashedPassword = await argon2.hash(SEED_PASSWORD);
   const adminUser = await prisma.user.create({
     data: {
       tenantId: tenant.id,
@@ -200,7 +202,7 @@ async function main() {
   console.log('\n✅ Seed completed!');
   console.log('\n📋 Login Credentials:');
   console.log('Email: admin@techshop.com');
-  console.log('Password: admin123');
+  console.log(`Password: ${SEED_PASSWORD}`);
 }
 
 main()

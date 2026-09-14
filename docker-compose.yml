@@ -20,7 +20,7 @@ services:
       - "3001:3001"
     environment:
       - DATABASE_URL=${DATABASE_URL}
-      - JWT_SECRET=${JWT_SECRET:-techshop-secret-key}
+      - JWT_SECRET=${JWT_SECRET:?Set JWT_SECRET in .env}
       - PORT=3001
       - NODE_ENV=production
     depends_on:

@@ -20,6 +20,7 @@
     "clean": "turbo clean"
   },
   "devDependencies": {
+    "ts-jest": "^29.4.12",
     "turbo": "^2.0.0",
     "typescript": "^5.5.0"
   },

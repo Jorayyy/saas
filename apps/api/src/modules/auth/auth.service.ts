@@ -124,12 +124,12 @@ export class AuthService {
     });
 
     // Extract roles and permissions
-    const roles = user.roles.map(ur => ur.role.name);
+    const roles = user.roles.map((ur: any) => ur.role.name);
     const permissions = [...new Set(
-      user.roles.flatMap(ur =>
-        ur.role.permissions.map(rp => rp.permission.name)
+      user.roles.flatMap((ur: any) =>
+        ur.role.permissions.map((rp: any) => rp.permission.name)
       ),
-    )];
+    )] as string[];
 
     const tokens = await this.generateTokens(user.id, user.email, user.tenantId, roles);
 
@@ -265,7 +265,7 @@ export class AuthService {
         throw new UnauthorizedException('Invalid token');
       }
 
-      const roles = user.roles.map(ur => ur.role.name);
+      const roles = user.roles.map((ur: any) => ur.role.name);
       const newAccessToken = await this.generateAccessToken(user.id, user.email, user.tenantId, roles);
 
       return { accessToken: newAccessToken };
@@ -304,10 +304,10 @@ export class AuthService {
       throw new NotFoundException('User not found');
     }
 
-    const roles = user.roles.map(ur => ur.role.name);
+    const roles = user.roles.map((ur: any) => ur.role.name);
     const permissions = [...new Set(
-      user.roles.flatMap(ur => ur.role.permissions.map(rp => rp.permission.name)),
-    )];
+      user.roles.flatMap((ur: any) => ur.role.permissions.map((rp: any) => rp.permission.name)),
+    )] as string[];
 
     return {
       id: user.id,
@@ -428,7 +428,7 @@ export class AuthService {
       },
     });
 
-    return { message: 'If the email exists, a reset link has been sent.', token: resetToken };
+    return { message: 'If the email exists, a reset link has been sent.' };
   }
 
   async resetPassword(dto: ResetPasswordDto) {
@@ -547,17 +547,17 @@ export class AuthService {
       let permsToAssign: string[] = [];
 
       if (roleDef.allPerms) {
-        permsToAssign = allPermissions.map(p => p.name);
+        permsToAssign = allPermissions.map((p: any) => p.name);
       } else if (roleDef.perms) {
         permsToAssign = roleDef.perms;
       } else if (roleDef.excludePerms) {
         permsToAssign = allPermissions
-          .map(p => p.name)
-          .filter(name => !roleDef.excludePerms.includes(name));
+          .map((p: any) => p.name)
+          .filter((name: string) => !roleDef.excludePerms.includes(name));
       }
 
       for (const permName of permsToAssign) {
-        const perm = allPermissions.find(p => p.name === permName);
+        const perm = allPermissions.find((p: any) => p.name === permName);
         if (perm) {
           await this.prisma.rolePermission.create({
             data: { roleId: role.id, permissionId: perm.id },
@@ -579,6 +579,6 @@ export class AuthService {
       include: { permission: true },
     });
 
-    return rolePermissions.map(rp => rp.permission.name);
+    return rolePermissions.map((rp: any) => rp.permission.name);
   }
 }
