@@ -352,6 +352,8 @@ enum AdjustmentType {
   INCREASE
   DECREASE
   SET
+  EARNING
+  DEDUCTION
 }
 
 model StockTransfer {
@@ -877,7 +879,7 @@ model Employee {
 
   firstName  String
   lastName   String
-  position   Position
+  position   EmployeePosition
   department String?
   branchId   String
   branch     Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
@@ -902,7 +904,7 @@ model Employee {
   @@map("employees")
 }
 
-enum Position {
+enum EmployeePosition {
   OWNER
   MANAGER
   CASHIER
@@ -916,6 +918,10 @@ enum EmployeeStatus {
   ACTIVE
   ON_LEAVE
   TERMINATED
+  SUSPENDED
+  RESIGNED
+  END_OF_CONTRACT
+  AWOL
 }
 
 model Schedule {
@@ -973,6 +979,10 @@ enum AttendanceStatus {
   LATE
   HALF_DAY
   LEAVE
+  ON_LEAVE
+  REST_DAY
+  HOLIDAY
+  INCOMPLETE
 }
 
 // ─── FINANCE ────────────────────────────────────────────
@@ -1434,4 +1444,309 @@ model TenantModule {
 
   @@unique([tenantId, module])
   @@map("tenant_modules")
+}
+
+// ─── LEGACY TABLES (existing in database, kept for compatibility) ──
+
+model AttendanceDaily {
+  id         String   @id @default(uuid())
+  tenantId   String
+  employeeId String
+  date       DateTime @db.Date
+  clockIn    DateTime?
+  clockOut   DateTime?
+  hoursWorked Decimal? @db.Decimal(5, 2)
+  overtime    Decimal? @db.Decimal(5, 2)
+  status      String?
+  notes       String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([tenantId, employeeId, date])
+  @@map("AttendanceDaily")
+}
+
+model Campaign {
+  id          String   @id @default(uuid())
+  tenantId    String
+  name        String
+  description String?
+  type        String?
+  status      String?
+  startDate   DateTime?
+  endDate     DateTime?
+  budget      Decimal? @db.Decimal(12, 2)
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([tenantId])
+  @@map("Campaign")
+}
+
+model ChatMessage {
+  id             String   @id @default(uuid())
+  conversationId String
+  senderId       String
+  content        String
+  type           String?
+  metadata       Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([conversationId])
+  @@map("ChatMessage")
+}
+
+model ChatParticipant {
+  id             String   @id @default(uuid())
+  conversationId String
+  userId         String
+  role           String?
+  joinedAt       DateTime @default(now())
+  leftAt         DateTime?
+
+  @@index([conversationId])
+  @@index([userId])
+  @@map("ChatParticipant")
+}
+
+model CompanySettings {
+  id       String @id @default(uuid())
+  tenantId String
+  key      String
+  value    Json?
+  group    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("CompanySettings")
+}
+
+model Conversation {
+  id        String   @id @default(uuid())
+  tenantId  String
+  title     String?
+  type      String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+  @@map("Conversation")
+}
+
+model Department {
+  id        String   @id @default(uuid())
+  tenantId  String
+  name      String
+  code      String?
+  managerId String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+  @@map("Department")
+}
+
+model GovContributionTable {
+  id        String   @id @default(uuid())
+  tenantId  String
+  name      String
+  rate      Decimal? @db.Decimal(5, 2)
+  ceiling   Decimal? @db.Decimal(12, 2)
+  metadata  Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("GovContributionTable")
+}
+
+model LegacyGroup {
+  id        String   @id @default(uuid())
+  tenantId  String
+  name      String
+  type      String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+  @@map("Group")
+}
+
+model Holiday {
+  id        String   @id @default(uuid())
+  tenantId  String
+  name      String
+  date      DateTime @db.Date
+  type      String?
+  isRecurring Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+  @@map("Holiday")
+}
+
+model LeaveType {
+  id        String   @id @default(uuid())
+  tenantId  String
+  name      String
+  daysAllowed Int @default(0)
+  isPaid    Boolean @default(true)
+  isActive  Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+  @@map("LeaveType")
+}
+
+model PayPeriod {
+  id        String   @id @default(uuid())
+  tenantId  String
+  startDate DateTime @db.Date
+  endDate   DateTime @db.Date
+  status    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+  @@map("PayPeriod")
+}
+
+model PayrollException {
+  id        String   @id @default(uuid())
+  tenantId  String
+  employeeId String
+  type      String?
+  amount    Decimal? @db.Decimal(12, 2)
+  description String?
+  date      DateTime @db.Date
+  status    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId, employeeId])
+  @@map("PayrollException")
+}
+
+model Payslip {
+  id        String   @id @default(uuid())
+  tenantId  String
+  employeeId String
+  payPeriodId String?
+  grossPay  Decimal? @db.Decimal(12, 2)
+  deductions Decimal? @db.Decimal(12, 2)
+  netPay    Decimal? @db.Decimal(12, 2)
+  status    String?
+  issuedAt  DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId, employeeId])
+  @@map("Payslip")
+}
+
+model PositionRecord {
+  id        String   @id @default(uuid())
+  tenantId  String
+  name      String
+  code      String?
+  isActive  Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+  @@map("Position")
+}
+
+model ProcessedGroup {
+  id        String   @id @default(uuid())
+  tenantId  String
+  name      String
+  status    String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+  @@map("ProcessedGroup")
+}
+
+model Session {
+  id           String   @id @default(uuid())
+  tenantId     String?
+  userId       String
+  token        String
+  ipAddress    String?
+  userAgent    String?
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+
+  @@index([userId])
+  @@map("Session")
+}
+
+model ShiftAssignment {
+  id          String   @id @default(uuid())
+  tenantId    String
+  employeeId  String
+  shiftTemplateId String?
+  date        DateTime @db.Date
+  startTime   DateTime?
+  endTime     DateTime?
+  status      String?
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([tenantId, employeeId, date])
+  @@map("ShiftAssignment")
+}
+
+model ShiftTemplate {
+  id        String   @id @default(uuid())
+  tenantId  String
+  name      String
+  startTime DateTime
+  endTime   DateTime
+  breakMinutes Int @default(0)
+  isActive  Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+  @@map("ShiftTemplate")
+}
+
+model Site {
+  id        String   @id @default(uuid())
+  tenantId  String
+  name      String
+  address   String?
+  isActive  Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+  @@map("Site")
+}
+
+model TimeLog {
+  id         String   @id @default(uuid())
+  tenantId   String
+  employeeId String
+  clockIn    DateTime
+  clockOut   DateTime?
+  hoursWorked Decimal? @db.Decimal(5, 2)
+  status     String?
+  notes      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([tenantId, employeeId, clockIn])
+  @@map("TimeLog")
 }
