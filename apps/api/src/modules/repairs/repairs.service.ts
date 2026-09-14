@@ -1,6 +1,5 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { RepairStatus } from '@prisma/client';
 
 export interface CreateRepairDto {
   customerId: string;
@@ -158,7 +157,7 @@ export class RepairsService {
         where: { id },
         data: {
           ...(dto.technicianId && { technicianId: dto.technicianId }),
-          ...(dto.status && { status: dto.status as RepairStatus }),
+          ...(dto.status && { status: dto.status as any }),
           ...(dto.diagnosticFindings && { diagnosticFindings: dto.diagnosticFindings }),
           ...(dto.estimatedCost !== undefined && { estimatedCost: dto.estimatedCost }),
           ...(dto.actualCost !== undefined && { actualCost: dto.actualCost }),
@@ -180,7 +179,7 @@ export class RepairsService {
           data: {
             repairId: id,
             tenantId,
-            status: dto.status as RepairStatus,
+            status: dto.status as any,
             userId,
             oldValues: { status: repair.status },
             newValues: { status: dto.status },

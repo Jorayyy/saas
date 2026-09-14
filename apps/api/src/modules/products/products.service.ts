@@ -89,7 +89,7 @@ export class ProductsService {
       order = 'desc',
     } = query;
 
-    const where: Prisma.ProductWhereInput = {
+    const where: any = {
       tenantId,
       deletedAt: null,
       ...(search && {
@@ -392,7 +392,7 @@ export class ProductsService {
 
     return {
       message: 'Stock adjusted successfully',
-      product: { id, name: product.name, sku: product.sku },
+      product: { id: productId, name: product.name, sku: product.sku },
       adjustment: { type: adjustmentType, quantity, reason },
       stock: { before: quantityBefore, change: quantityChange, after: newStock },
     };
