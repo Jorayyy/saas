@@ -4,7 +4,7 @@ services:
     runtime: node
     region: oregon
     buildCommand: cd apps/api && npm install --include=dev && npx prisma generate && node build.js
-    startCommand: cd apps/api && npx prisma db push --accept-data-loss && node dist/main.js
+    startCommand: cd apps/api && npx prisma db push --force-reset --accept-data-loss && node dist/main.js
     envVars:
       - key: DATABASE_URL
         sync: false
